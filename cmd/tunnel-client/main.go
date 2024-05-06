@@ -1,41 +1,55 @@
 package main
 
 import (
-	"io"
 	"log"
 	"net"
 )
 
 func main() {
-	tunnelingSeverAddr := "tunneling-sever-ip:8080"
-	conn, err := net.Dial("tcp", tunnelingSeverAddr)
+	conn, err := net.Dial("tcp", "localhost:4001")
 	if err != nil {
 		log.Fatalf("Failed to connect to tunneling server: %s", err)
 	}
 	defer conn.Close()
 
+	_, err = conn.Write([]byte("Hello from the client!"))
+	if err != nil {
+		log.Fatalf("Failed to write to server: %s", err)
+	}
+
+	clientAddr := conn.LocalAddr().String()
+
+	listener, err := net.Listen("tcp", clientAddr)
+	if err != nil {
+		log.Fatalf("Failed to listen on client's port: %s", err)
+	}
+	defer listener.Close()
+
+	log.Printf("Client listening on: %s", clientAddr)
+
 	for {
-		clientConn, err := net.Dial("tcp", "localhost:3001")
+		clientConn, err := listener.Accept()
 		if err != nil {
-			log.Printf("Failed to connect to locahost:3001: %s", err)
+			log.Printf("Failed to accept incoming connection: %s", err)
 			continue
 		}
+		conn.Write([]byte("Hello from the client!"))
 
-		defer clientConn.Close()
-
-		go func() {
-			_, err := io.Copy(conn, clientConn)
-			if err != nil {
-				log.Printf("Error copying from clientConn to conn: %s", err)
-			}
-		}()
-
-		go func() {
-			_, err := io.Copy(clientConn, conn)
-			if err != nil {
-				log.Printf("Error copying from conn to clientConn: %s", err)
-			}
-		}()
-
+		go handleClient(clientConn)
 	}
 }
+
+func handleClient(conn net.Conn) {
+	defer conn.Close()
+	for {
+		buffer := make([]byte, 4096)
+		n, err := conn.Read(buffer)
+		if err != nil {
+			log.Printf("Failed to read from server: %s", err)
+			return
+		}
+		log.Printf("Read %d bytes from server", n)
+		log.Printf("Data: %s", buffer[:n])
+	}
+}
+
