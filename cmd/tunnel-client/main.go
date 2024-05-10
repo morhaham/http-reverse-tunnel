@@ -1,53 +1,30 @@
 package main
 
 import (
+	"io"
 	"log"
 	"net"
+	"net/http"
+	"sync"
 )
 
 func main() {
-	conn, err := net.Dial("tcp", "localhost:4001")
+	tunnServAddr := "localhost:4001"
+	conn, err := net.Dial("tcp", tunnServAddr)
 	if err != nil {
 		log.Fatalf("Failed to connect to tunneling server: %s", err)
 	}
-	defer conn.Close()
-
-	_, err = conn.Write([]byte("Hello from the client!"))
-	if err != nil {
-		log.Fatalf("Failed to write to server: %s", err)
-	}
-
-	buffer := make([]byte, 100)
-	_, err = conn.Read(buffer)
-	if err != nil {
-		log.Fatalf("Failed to read from server: %s", err)
-	}
-	log.Printf("Received from server: %s", buffer)
-
-	clientAddr := conn.LocalAddr().String()
-
-	listener, err := net.Listen("tcp", clientAddr)
-	if err != nil {
-		log.Fatalf("Failed to listen on client's port: %s", err)
-	}
-	defer listener.Close()
-
-	log.Printf("Client listening on: %s", clientAddr)
-
-	for {
-		clientConn, err := listener.Accept()
-		if err != nil {
-			log.Printf("Failed to accept incoming connection: %s", err)
-			continue
-		}
-		conn.Write([]byte("Hello from the client!"))
-
-		go handleClient(clientConn)
-	}
+	var wg sync.WaitGroup
+	wg.Add(1)
+	log.Printf("Connected to tunneling server on %s", tunnServAddr)
+	go proxyReq(conn)
+	wg.Wait()
 }
 
-func handleClient(conn net.Conn) {
+func proxyReq(conn net.Conn) {
 	defer conn.Close()
+
+	proxyTo := "http://localhost:4000"
 	for {
 		buffer := make([]byte, 4096)
 		n, err := conn.Read(buffer)
@@ -57,5 +34,19 @@ func handleClient(conn net.Conn) {
 		}
 		log.Printf("Read %d bytes from server", n)
 		log.Printf("Data: %s", buffer[:n])
+		conn.Write([]byte("The tunnel client read the HTTP request"))
+		resp, err := http.Get(proxyTo)
+		if err != nil {
+			log.Printf("Failed to read HTTP server response: %s", err)
+			continue
+		}
+		defer resp.Body.Close()
+
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			log.Printf("Failed to read HTTP server response body: %s", err)
+			continue
+		}
+		log.Printf("HTTP server response: %s", respBody)
 	}
 }

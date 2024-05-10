@@ -8,31 +8,25 @@ import (
 func main() {
 	listenAddr := "localhost:4001"
 
-	listener, err := net.Listen("tcp", listenAddr)
+	conn, err := net.Listen("tcp", listenAddr)
 	if err != nil {
 		log.Fatalf("Failed to start server: %s", err)
 	}
-	defer listener.Close()
-
 	log.Printf("Tunneling server started on %s", listenAddr)
-
 	for {
-		conn, err := listener.Accept()
+		conn, err := conn.Accept()
 		if err != nil {
 			log.Printf("Failed to accept connection: %s", err)
 			continue
 		}
-		readHello := make([]byte, 100)
-		_, err = conn.Read(readHello)
-		if err != nil {
-			log.Printf("Failed to read from client: %s", err)
-		}
-		log.Printf("Received from client: %s", readHello)
-		_, err = conn.Write([]byte("Hello from the server!"))
+
+		log.Printf("Accepted connection from %s", conn.RemoteAddr())
+
+		httpRequest := []byte("GET / HTTP/1.1\r\nHost: localhost:4000\r\n\r\n")
+		_, err = conn.Write([]byte(httpRequest))
 		if err != nil {
 			log.Printf("Failed to write to client: %s", err)
 		}
-		// targetAddr := conn.RemoteAddr().String()
 		go handleClient(conn)
 	}
 }
@@ -50,4 +44,3 @@ func handleClient(conn net.Conn) {
 		log.Printf("Data: %s", buffer[:n])
 	}
 }
-
