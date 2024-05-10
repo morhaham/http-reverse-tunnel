@@ -1,10 +1,8 @@
 package main
 
 import (
-	"io"
 	"log"
 	"net"
-	"net/http"
 	"sync"
 )
 
@@ -24,7 +22,7 @@ func main() {
 func proxyReq(conn net.Conn) {
 	defer conn.Close()
 
-	proxyTo := "http://localhost:4000"
+	proxyTo := "localhost:4000"
 	for {
 		buffer := make([]byte, 4096)
 		n, err := conn.Read(buffer)
@@ -35,18 +33,30 @@ func proxyReq(conn net.Conn) {
 		log.Printf("Read %d bytes from server", n)
 		log.Printf("Data: %s", buffer[:n])
 		conn.Write([]byte("The tunnel client read the HTTP request"))
-		resp, err := http.Get(proxyTo)
+		// resp, err := http.Get(proxyTo)
+		localAppConn, err := net.Dial("tcp", proxyTo)
+		defer conn.Close()
 		if err != nil {
-			log.Printf("Failed to read HTTP server response: %s", err)
+			log.Printf("Failed to connect to HTTP server: %s", err)
 			continue
 		}
-		defer resp.Body.Close()
-
-		respBody, err := io.ReadAll(resp.Body)
+		_, err = localAppConn.Write(buffer[:n])
+		if err != nil {
+			log.Printf("Failed to write to HTTP server: %s", err)
+			continue
+		}
+		// _, err = io.Copy(localAppConn, conn)
+		// if err != nil {
+		// 	log.Printf("Failed to read HTTP server response: %s", err)
+		// 	continue
+		// }
+		buffer = make([]byte, 4096)
+		n, err = localAppConn.Read(buffer)
 		if err != nil {
 			log.Printf("Failed to read HTTP server response body: %s", err)
 			continue
 		}
-		log.Printf("HTTP server response: %s", respBody)
+		// log.Printf("HTTP server response: %s", buffer[:n])
+		conn.Write(buffer[:n])
 	}
 }
