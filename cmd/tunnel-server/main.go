@@ -32,19 +32,13 @@ func main() {
 		if err != nil {
 			log.Printf("Failed to write to client: %s", err)
 		}
-		targetAddr := conn.RemoteAddr().String()
-		go handleClient(targetAddr)
+		// targetAddr := conn.RemoteAddr().String()
+		go handleClient(conn)
 	}
 }
 
-func handleClient(targetAddr string) {
-	log.Printf("Received connection from: %s", targetAddr)
-	conn, err := net.Dial("tcp", targetAddr)
-	if err != nil {
-		log.Printf("Failed to connect to target: %s", err)
-	}
+func handleClient(conn net.Conn) {
 	defer conn.Close()
-	conn.Write([]byte("Hello from the server!"))
 	for {
 		buffer := make([]byte, 4096)
 		n, err := conn.Read(buffer)

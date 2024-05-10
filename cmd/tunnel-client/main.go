@@ -17,6 +17,13 @@ func main() {
 		log.Fatalf("Failed to write to server: %s", err)
 	}
 
+	buffer := make([]byte, 100)
+	_, err = conn.Read(buffer)
+	if err != nil {
+		log.Fatalf("Failed to read from server: %s", err)
+	}
+	log.Printf("Received from server: %s", buffer)
+
 	clientAddr := conn.LocalAddr().String()
 
 	listener, err := net.Listen("tcp", clientAddr)
@@ -52,4 +59,3 @@ func handleClient(conn net.Conn) {
 		log.Printf("Data: %s", buffer[:n])
 	}
 }
-
