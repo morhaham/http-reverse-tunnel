@@ -10,9 +10,9 @@ import (
 
 func main() {
 	tunnServAddr := "localhost:4001"
-	cert, _ := tls.LoadX509KeyPair("tls/server.crt", "tls/server.key")
+	// cert, _ := tls.LoadX509KeyPair("tls/server.crt", "tls/server.key")
 	tlsConfig := &tls.Config{
-		Certificates:       []tls.Certificate{cert},
+		// Certificates:       []tls.Certificate{cert},
 		InsecureSkipVerify: true,
 	}
 	conn, err := tls.Dial("tcp", tunnServAddr, tlsConfig)
