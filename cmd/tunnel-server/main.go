@@ -1,14 +1,19 @@
 package main
 
 import (
+	"crypto/tls"
 	"log"
 	"net"
 )
 
 func main() {
 	listenAddr := "localhost:4001"
-
-	conn, err := net.Listen("tcp", listenAddr)
+	cert, _ := tls.LoadX509KeyPair("tls/client.pem", "tls/client.key")
+	tlsConfig := &tls.Config{
+		Certificates:       []tls.Certificate{cert},
+		InsecureSkipVerify: true,
+	}
+	conn, err := tls.Listen("tcp", listenAddr, tlsConfig)
 	if err != nil {
 		log.Fatalf("Failed to start server: %s", err)
 	}
