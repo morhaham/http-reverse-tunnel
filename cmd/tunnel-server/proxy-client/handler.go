@@ -23,6 +23,7 @@ func (h *Handler) authenticate() {
 
 }
 
+// TODO: proxy traffic from external http clients
 func (h *Handler) handleWrites(wg *sync.WaitGroup) {
 	defer wg.Done()
 	httpRequest := []byte("GET / HTTP/1.1\r\nHost: localhost:4000\r\n\r\n")

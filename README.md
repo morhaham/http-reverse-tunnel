@@ -1,6 +1,8 @@
-# Instructions
+# Simple HTTP over TCP tunneling client and server
 
-## Creating TLS  self signed certificate
+## Instructions
+
+### Creating TLS  self signed certificate
 `mkdir ./cmd/tunnel-server/tls/ && cd ./cmd/tunnel-server/tls/`
 
 `openssl genrsa -out server.key 2048`
