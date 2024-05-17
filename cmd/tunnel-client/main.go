@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"strings"
 	"sync"
 )
 
@@ -39,6 +40,8 @@ func proxyReq(conn net.Conn, wg *sync.WaitGroup) {
 		return
 	}
 
+	apiKey := "1234"
+
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
@@ -50,7 +53,7 @@ func proxyReq(conn net.Conn, wg *sync.WaitGroup) {
 
 	go func() {
 		defer wg.Done()
-		_, err = io.Copy(conn, localAppConn)
+		_, err = io.Copy(conn, io.MultiReader(strings.NewReader(apiKey+"\n"), localAppConn))
 		if err != nil {
 			log.Printf("Failed to tunnel from local app to server: %s", err)
 		}
