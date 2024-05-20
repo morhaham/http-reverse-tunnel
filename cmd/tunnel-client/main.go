@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/tls"
+	"flag"
 	"io"
 	"log"
 	"net"
@@ -9,26 +10,35 @@ import (
 	"sync"
 )
 
+type AppState struct {
+	apiKey string
+}
+
 func main() {
-	tunnServAddr := "localhost:4001"
-	// cert, _ := tls.LoadX509KeyPair("tls/server.crt", "tls/server.key")
+
+	tunnServAddr := flag.String("tunnServAddr", "localhost:4001", "The address of the tunneling server")
+	apiKey := flag.String("apiKey", "1234", "The API key to use for authentication")
+
+	app := &AppState{
+		apiKey: *apiKey,
+	}
+	flag.Parse()
 	tlsConfig := &tls.Config{
-		// Certificates:       []tls.Certificate{cert},
 		InsecureSkipVerify: true,
 	}
-	conn, err := tls.Dial("tcp", tunnServAddr, tlsConfig)
+	conn, err := tls.Dial("tcp", *tunnServAddr, tlsConfig)
 	if err != nil {
 		log.Fatalf("Failed to connect to tunneling server: %s", err)
 	}
 	defer conn.Close()
 	var wg sync.WaitGroup
 	wg.Add(1)
-	log.Printf("Connected to tunneling server on %s", tunnServAddr)
-	go proxyReq(conn, &wg)
+	log.Printf("Connected to tunneling server on %s", *tunnServAddr)
+	go app.proxyReq(conn, &wg)
 	wg.Wait()
 }
 
-func proxyReq(conn net.Conn, wg *sync.WaitGroup) {
+func (app *AppState) proxyReq(conn net.Conn, wg *sync.WaitGroup) {
 	defer wg.Done()
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: true,
@@ -40,8 +50,6 @@ func proxyReq(conn net.Conn, wg *sync.WaitGroup) {
 		return
 	}
 
-	apiKey := "1234"
-
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
@@ -52,8 +60,9 @@ func proxyReq(conn net.Conn, wg *sync.WaitGroup) {
 	}()
 
 	go func() {
+		log.Printf("api key: %s", app.apiKey)
 		defer wg.Done()
-		_, err = io.Copy(conn, io.MultiReader(strings.NewReader(apiKey+"\n"), localAppConn))
+		_, err = io.Copy(conn, io.MultiReader(strings.NewReader(app.apiKey+"\n"), localAppConn))
 		if err != nil {
 			log.Printf("Failed to tunnel from local app to server: %s", err)
 		}
