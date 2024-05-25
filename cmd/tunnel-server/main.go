@@ -17,10 +17,10 @@ func main() {
 		InsecureSkipVerify: true,
 	}
 	proxyClientHandler := &proxyclient.Handler{}
-	ps := &proxyServer{proxyClientHandler: proxyClientHandler}
-	ps.listen(*listenAddr, tlsConfig)
+	proxyServer := &proxyServer{proxyClientHandler: proxyClientHandler}
+	proxyServer.listen(*listenAddr, tlsConfig)
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	go ps.accept(&wg)
+	go proxyServer.accept(&wg)
 	wg.Wait()
 }
